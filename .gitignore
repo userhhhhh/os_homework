@@ -1,0 +1,10 @@
+.vscode/
+
+edk2/*
+!edk2/HelloWorldPkg/
+!edk2/MyAcpiViewPkg/
+!edk2/ChangeACPITablePkg/
+
+kvm/
+xv6_uefi/
+

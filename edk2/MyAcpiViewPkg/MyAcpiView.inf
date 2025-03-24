@@ -1,0 +1,25 @@
+[Defines]
+    INF_VERSION = 0X00010006
+    BASE_NAME = MyAcpiView
+    FILE_GUID = c9fc1138-021f-40d9-b525-dbfbd8f98ed7
+    MODULE_TYPE = UEFI_APPLICATION
+    VERSION_STRING = 0.1
+    ENTRY_POINT = UefiMain
+
+[Sources]
+    MyAcpiView.c
+
+[Packages]
+    MdePkg/MdePkg.dec
+
+[LibraryClasses]
+    UefiApplicationEntryPoint
+    UefiLib
+    UefiBootServicesTableLib
+    BaseMemoryLib
+    GuidLib
+
+[Guids]
+    gEfiAcpiTableGuid
+    gEfiAcpi20TableGuid
+    
