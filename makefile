@@ -59,6 +59,14 @@ init_build:
 	export EDK_TOOLS_PATH=${HM_DIR}/edk2/BaseTools && \
 	source edksetup.sh BaseTools && \
 	build"
+
+kv_test:
+	g++ -static -o ./ctest/$(project) ./ctest/$(project).cpp
+	cp ./ctest/$(project) ./kvm/busybox-1.35.0/_install/bin/
+	cd kvm/busybox-1.35.0/_install && \
+	find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
+	make only_kernel
+
 	
 	
 
