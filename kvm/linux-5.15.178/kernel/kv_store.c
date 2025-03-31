@@ -8,8 +8,6 @@
 #include <linux/sched/signal.h>
 #include <linux/sched/task.h>
 
-#define KV_STORE_BUCKETS 1024
-
 struct kv_node {
     int key;
     int value;
@@ -18,7 +16,7 @@ struct kv_node {
 
 SYSCALL_DEFINE2(write_kv, int, key, int, value) {
     struct task_struct *task = current;
-    int bucket = key % KV_STORE_BUCKETS;
+    int bucket = key % 1024;
     struct hlist_head *head = &task->kv_store[bucket];
     struct kv_node *node;
     struct hlist_node *tmp;
@@ -47,15 +45,14 @@ SYSCALL_DEFINE2(write_kv, int, key, int, value) {
     }
 
     spin_unlock(&task->kv_locks[bucket]);
-    return sizeof(int) * 2; // 返回写入的字节数
+    return 0;
 }
 
 SYSCALL_DEFINE1(read_kv, int, key) {
     struct task_struct *task = current;
-    int bucket = key % KV_STORE_BUCKETS;
+    int bucket = key % 1024;
     struct hlist_head *head = &task->kv_store[bucket];
     struct kv_node *node;
-    bool found = false;
 
     spin_lock(&task->kv_locks[bucket]);
 
@@ -67,6 +64,5 @@ SYSCALL_DEFINE1(read_kv, int, key) {
     }
 
     spin_unlock(&task->kv_locks[bucket]);
-    return -ENOENT; 
+    return -1; 
 }
-

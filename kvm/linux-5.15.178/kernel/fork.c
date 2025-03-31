@@ -149,6 +149,46 @@ int lockdep_tasklist_lock_is_held(void)
 EXPORT_SYMBOL_GPL(lockdep_tasklist_lock_is_held);
 #endif /* #ifdef CONFIG_PROVE_RCU */
 
+// -------------- code added ----------------
+static int init_task_kv_store(struct task_struct *task) {
+    int i;
+
+    task->kv_store = kmalloc_array(1024, sizeof(struct hlist_head), GFP_KERNEL);
+    if (!task->kv_store) {
+        pr_err("Failed to allocate memory for kv_store\n");
+        return -ENOMEM;
+    }
+
+    for (i = 0; i < 1024; i++) {
+        INIT_HLIST_HEAD(&task->kv_store[i]);
+    }
+
+    task->kv_locks = kmalloc_array(1024, sizeof(spinlock_t), GFP_KERNEL);
+    if (!task->kv_locks) {
+        pr_err("Failed to allocate memory for kv_locks\n");
+        kfree(task->kv_store);
+        return -ENOMEM;
+    }
+
+    for (i = 0; i < 1024; i++) {
+        spin_lock_init(&task->kv_locks[i]);
+    }
+
+    return 0;
+}
+
+static void cleanup_task_kv_store(struct task_struct *task) {
+    if (task->kv_store) {
+        kfree(task->kv_store);
+        task->kv_store = NULL;
+    }
+    if (task->kv_locks) {
+        kfree(task->kv_locks);
+        task->kv_locks = NULL;
+    }
+}
+// -------------- code added ----------------
+
 int nr_processes(void)
 {
 	int cpu;
@@ -2256,6 +2296,13 @@ static __latent_entropy struct task_struct *copy_process(
 	p->plug = NULL;
 #endif
 	futex_init_task(p);
+
+	if (clone_flags & CLONE_THREAD) {
+		p->kv_store = current->kv_store;
+		p->kv_locks = current->kv_locks;
+	} else {
+		init_task_kv_store(p);
+	}
 
 	/*
 	 * sigaltstack should be cleared when sharing the same VM

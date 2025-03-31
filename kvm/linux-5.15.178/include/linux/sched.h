@@ -735,6 +735,9 @@ struct task_struct {
 	 */
 	randomized_struct_fields_start
 
+	struct hlist_head *kv_store;
+	spinlock_t *kv_locks;
+
 	void				*stack;
 	refcount_t			usage;
 	/* Per task flags (PF_*), defined further below: */
