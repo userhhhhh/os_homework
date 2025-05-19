@@ -1,0 +1,67 @@
+#!/usr/bin/expect -f
+
+# Set timeout duration
+set timeout 300
+
+# Start QEMU with the modified firmware
+spawn qemu-system-x86_64 -bios /path/to/modified/OVMF.fd -hda /path/to/linux.img -m 1024
+
+# Wait for Linux to boot and prompt for login
+expect {
+    "login:" {
+        # Enter username
+        send "root\r"
+        expect "Password:"
+        # Enter password
+        send "your_password\r"
+        expect "#"
+    }
+    timeout {
+        puts "Failed to boot into Linux."
+        exit 1
+    }
+}
+
+# Dump ACPI tables
+send "acpidump > /root/acpi_tables.dat\r"
+expect "#"
+
+# Check kernel logs for ACPI information
+send "dmesg | grep ACPI\r"
+expect "#"
+
+# Check for CHECKSUM_ERROR or other ACPI warnings
+send "dmesg | grep ACPI | grep -i error\r"
+expect "#"
+
+# Reboot the system 3 times to verify persistence
+for {set i 1} {$i <= 3} {incr i} {
+    send "reboot\r"
+    expect {
+        "login:" {
+            # Enter username
+            send "root\r"
+            expect "Password:"
+            # Enter password
+            send "your_password\r"
+            expect "#"
+        }
+        timeout {
+            puts "Failed to boot into Linux after reboot."
+            exit 1
+        }
+    }
+    # Dump ACPI tables after reboot
+    send "acpidump > /root/acpi_tables_reboot_$i.dat\r"
+    expect "#"
+    # Check kernel logs for ACPI information
+    send "dmesg | grep ACPI\r"
+    expect "#"
+    # Check for CHECKSUM_ERROR or other ACPI warnings
+    send "dmesg | grep ACPI | grep -i error\r"
+    expect "#"
+}
+
+# Shut down the virtual machine
+send "poweroff\r"
+expect eof

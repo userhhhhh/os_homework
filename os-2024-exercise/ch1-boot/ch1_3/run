@@ -1,0 +1,35 @@
+#!/usr/bin/expect -f
+
+# Set timeout
+set timeout 5
+
+# Define the sysfs entry path (modify as needed)
+set sysfs_path "/sys/firmware/uefi/runtime-info"
+
+# Start an interactive shell session
+spawn bash
+
+# Check if the sysfs entry exists
+send "if [ -e $sysfs_path ]; then echo 'Sysfs entry exists'; else echo 'Sysfs entry does not exist'; fi\r"
+expect {
+    "Sysfs entry exists" {
+        send_user "Test passed: sysfs entry found.\n"
+    }
+    "Sysfs entry does not exist" {
+        send_user "Test failed: sysfs entry not found.\n"
+        exit 1
+    }
+}
+
+# Read the content of the sysfs entry
+send "cat $sysfs_path\r"
+expect {
+    -re "(.*)\r" {
+        set sysfs_content $expect_out(1,string)
+        send_user "Sysfs content:\n$sysfs_content\n"
+    }
+}
+
+# Exit the shell session
+send "exit\r"
+expect eof
