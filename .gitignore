@@ -18,6 +18,9 @@ kvm/**
 !kvm/linux-5.15.178/arch/x86/entry/syscalls/
 !kvm/linux-5.15.178/arch/x86/entry/syscalls/syscall_64.tbl
 
+!kvm/linux-5.15.178/arch/x86/entry/vdso
+!kvm/linux-5.15.178/arch/x86/entry/vdso/vma.c
+
 !kvm/linux-5.15.178/include/
 !kvm/linux-5.15.178/include/linux/
 !kvm/linux-5.15.178/include/linux/syscalls.h
