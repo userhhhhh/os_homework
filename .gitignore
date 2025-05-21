@@ -20,6 +20,15 @@ kvm/**
 
 !kvm/linux-5.15.178/arch/x86/entry/vdso
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vma.c
+!kvm/linux-5.15.178/arch/x86/entry/vdso/vdso.lds.S
+!kvm/linux-5.15.178/arch/x86/entry/vdso/vget_task_struct_info.c
+
+!kvm/linux-5.15.178/arch/x86/include/
+!kvm/linux-5.15.178/arch/x86/include/asm/
+!kvm/linux-5.15.178/arch/x86/include/asm/mmu.h
+!kvm/linux-5.15.178/arch/x86/include/asm/mmu_context.h
+!kvm/linux-5.15.178/arch/x86/include/asm/vdso.h
+
 
 !kvm/linux-5.15.178/include/
 !kvm/linux-5.15.178/include/linux/

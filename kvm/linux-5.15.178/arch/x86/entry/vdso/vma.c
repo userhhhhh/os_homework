@@ -32,7 +32,26 @@
 	const size_t name ## _offset = offset;
 #include <asm/vvar.h>
 
-// 内核在内存中维护 struct vdso_data，用于存放要导出的信息
+/*
+步骤一：内核分配并维护数据
+维护 struct vdso_data，用于存放要导出的信息。
+步骤二：定义特殊映射
+内核定义 vvar_mapping，指定映射的名字、缺页处理函数（fault）、重映射处理函数（mremap）等。
+步骤三：进程启动时映射到用户空间
+在进程启动时，内核会调用 arch_setup_additional_pages，
+通过 map_vdso 等函数，把 vDSO 和 vvar 区域映射到用户进程的虚拟地址空间。
+这些区域的物理页实际指向内核维护的数据结构。
+步骤四：缺页异常时建立映射
+当用户进程第一次访问 vvar 区域时，会触发缺页异常，内核的 vvar_fault 函数被调用。
+vvar_fault 会把内核中的数据页（如 __vvar_page）映射到用户空间的相应虚拟地址。
+步骤五：用户态直接读取
+用户态程序可以直接通过指针访问 vvar 区域的数据，无需系统调用，效率极高。
+例如，glibc 的 clock_gettime 实现会优先尝试从 vDSO/vvar 区域读取时间数据。
+*/
+
+// vma.c的作用：实现缺页异常，在缺页异常的时候，能把结构体传到虚拟空间里去
+
+// 存放要导出的信息
 struct vdso_data *arch_get_vdso_data(void *vvar_page)
 {
 	return (struct vdso_data *)(vvar_page + _vdso_data_offset);
@@ -54,18 +73,25 @@ void __init init_vdso_image(const struct vdso_image *image)
 						image->alt_len));
 }
 
+// vvar_mapping:指定映射的名字、缺页处理函数（fault）、重映射处理函数（mremap）等。
 static const struct vm_special_mapping vvar_mapping;
 struct linux_binprm;
 
+// 作用：处理 vDSO 区域的页错误。在进程首次访问 [vdso] 区域的一页时，为该虚拟页找到对应的物理页，并将其映射进来。
 static vm_fault_t vdso_fault(const struct vm_special_mapping *sm,
 		      struct vm_area_struct *vma, struct vm_fault *vmf)
 {
+	// vma->vm_mm：当前进程
+	// vdso_image：vdso 映射区的基本信息
 	const struct vdso_image *image = vma->vm_mm->context.vdso_image;
 
+	// vmf->pgoff: 触发页错误的虚拟地址在 [vdso] 区的页偏移。
 	if (!image || (vmf->pgoff << PAGE_SHIFT) >= image->size)
 		return VM_FAULT_SIGBUS;
 
+	// virt_to_page：找到虚拟地址对应的物理页，可以理解成找到物理地址
 	vmf->page = virt_to_page(image->data + (vmf->pgoff << PAGE_SHIFT));
+	// get_page：增加页的引用计数
 	get_page(vmf->page);
 	return 0;
 }
@@ -87,6 +113,7 @@ static void vdso_fix_landing(const struct vdso_image *image,
 #endif
 }
 
+// 作用：当 vDSO 被 mremap() 移动时，更新进程上下文中的 vDSO 地址，并修复一些地址错误
 static int vdso_mremap(const struct vm_special_mapping *sm,
 		struct vm_area_struct *new_vma)
 {
@@ -148,9 +175,55 @@ static inline struct page *find_timens_vvar_page(struct vm_area_struct *vma)
 }
 #endif
 
+static vm_fault_t vtask_fault(const struct vm_special_mapping *sm,
+		      struct vm_area_struct *vma, struct vm_fault *vmf)
+{
+	unsigned long total_size, offset;
+    struct task_struct *task = current;
+    struct page *page = NULL;
+    void *task_ptr = task;
+
+    // 以页为单位的偏移量，从末页起倒数
+    unsigned long pgoff = vmf->pgoff;
+
+    // 结构体信息页（最后一页）
+    if (pgoff == 0) {
+        // 自定义结构体，存放元信息
+        struct task_info *info_page;
+        info_page = kzalloc(PAGE_SIZE, GFP_KERNEL);
+        if (!info_page)
+            return VM_FAULT_OOM;
+
+        info_page->pid = task->pid;
+        info_page->task_struct_ptr = task_ptr;
+        // 可扩展更多元信息，如 task_struct 大小等
+
+        memcpy((void *)vmalloc_to_page(info_page)->virtual, info_page, sizeof(*info_page));
+        page = virt_to_page(info_page);
+        get_page(page);
+        return vmf_insert_page(vma, vmf->address, page);
+    }
+
+    // task_struct 内容页
+    // 根据偏移量获取对应地址
+    offset = (pgoff - 1) << PAGE_SHIFT;
+    total_size = sizeof(struct task_struct);
+    if (offset >= total_size)
+        return VM_FAULT_SIGBUS;
+
+    void *src = (void *)((unsigned long)task_ptr + offset);
+    page = virt_to_page(src);
+    get_page(page);
+    return vmf_insert_page(vma, vmf->address, page);
+}
+
 static vm_fault_t vvar_fault(const struct vm_special_mapping *sm,
 		      struct vm_area_struct *vma, struct vm_fault *vmf)
 {
+	// vma：当前触发缺页异常的虚拟内存区域。
+	// vm_mm：指向该虚拟内存区域所属的内存描述符（struct mm_struct *），即进程的内存空间。
+	// context：mm_struct 里的一个结构体，保存与体系结构相关的上下文信息。
+	// image：当前进程的 vDSO 镜像信息
 	const struct vdso_image *image = vma->vm_mm->context.vdso_image;
 	unsigned long pfn;
 	long sym_offset;
@@ -158,6 +231,9 @@ static vm_fault_t vvar_fault(const struct vm_special_mapping *sm,
 	if (!image)
 		return VM_FAULT_SIGBUS;
 
+	// vmf：struct vm_fault *，表示本次缺页异常的相关信息。
+	// pgoff：page offset，表示当前缺页的虚拟地址在该 VMA 区域内，从起始地址算起是第几页。
+	// PAGE_SHIFT：页大小的位数，通常 12，即 4KB 页。
 	sym_offset = (long)(vmf->pgoff << PAGE_SHIFT) +
 		image->sym_vvar_start;
 
@@ -238,60 +314,83 @@ static const struct vm_special_mapping vvar_mapping = {
 	.name = "[vvar]",
 	.fault = vvar_fault,
 };
+static const struct vm_special_mapping vtask_mapping = {
+    .name = "[vtask]",
+    .fault = vtask_fault,
+};
 
 /*
  * Add vdso and vvar mappings to current process.
  * @image          - blob to map
  * @addr           - request a specific address (zero to map at free addr)
  */
+ 
+#define VDSO_VTASK_PAGES 5
+#define VDSO_VTASK_SIZE  (VDSO_VTASK_PAGES * PAGE_SIZE)
+
 static int map_vdso(const struct vdso_image *image, unsigned long addr)
 {
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma;
 	unsigned long text_start;
+	unsigned long vvar_len = -image->sym_vvar_start;
+	unsigned long vtask_len = VDSO_VTASK_SIZE;
+	unsigned long total_len = vtask_len + vvar_len + image->size;
 	int ret = 0;
 
 	if (mmap_write_lock_killable(mm))
 		return -EINTR;
 
-	addr = get_unmapped_area(NULL, addr,
-				 image->size - image->sym_vvar_start, 0, 0);
+	addr = get_unmapped_area(NULL, addr, total_len, 0, 0);
 	if (IS_ERR_VALUE(addr)) {
 		ret = addr;
 		goto up_fail;
 	}
 
-	text_start = addr - image->sym_vvar_start;
+	// 布局：vtask_start | vvar_start | vdso
+	unsigned long vtask_start = addr;
+	unsigned long vvar_start = vtask_start + vtask_len;
+	text_start = vvar_start + vvar_len;
 
-	/*
-	 * MAYWRITE to allow gdb to COW and set breakpoints
-	 */
+	// 映射 vdso
 	vma = _install_special_mapping(mm,
 				       text_start,
 				       image->size,
-				       VM_READ|VM_EXEC|
-				       VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
+				       VM_READ | VM_EXEC |
+				       VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC,
 				       &vdso_mapping);
-
 	if (IS_ERR(vma)) {
 		ret = PTR_ERR(vma);
 		goto up_fail;
 	}
 
+	// 映射 vvar
 	vma = _install_special_mapping(mm,
-				       addr,
-				       -image->sym_vvar_start,
-				       VM_READ|VM_MAYREAD|VM_IO|VM_DONTDUMP|
-				       VM_PFNMAP,
+				       vvar_start,
+				       vvar_len,
+				       VM_READ | VM_MAYREAD | VM_IO |
+				       VM_PFNMAP | VM_DONTDUMP,
 				       &vvar_mapping);
-
 	if (IS_ERR(vma)) {
 		ret = PTR_ERR(vma);
 		do_munmap(mm, text_start, image->size, NULL);
-	} else {
-		current->mm->context.vdso = (void __user *)text_start;
-		current->mm->context.vdso_image = image;
+		goto up_fail;
 	}
+
+	// 映射 vtask
+	vma = _install_special_mapping(mm,
+				       vtask_start,
+				       vtask_len,
+				       VM_READ | VM_MAYREAD,
+				       &vtask_mapping);
+	if (IS_ERR(vma)) {
+		ret = PTR_ERR(vma);
+		do_munmap(mm, text_start, image->size + vvar_len, NULL);
+		goto up_fail;
+	}
+
+	current->mm->context.vdso = (void __user *)text_start;
+	current->mm->context.vdso_image = image;
 
 up_fail:
 	mmap_write_unlock(mm);

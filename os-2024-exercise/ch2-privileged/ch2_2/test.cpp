@@ -71,5 +71,25 @@ int main() {
             waitpid(pid, &status, 0);
         }
     }
+     // one more Check for the parent process
+    if (get_task_struct_info(&info) != 0) {
+        std::cerr << "Failed to get task struct info" << std::endl;
+        return 1;
+    }
+    pid_t parent_pid_vdso = info.pid;
+    std::ifstream parent_stat_file("/proc/self/stat");
+    if (!parent_stat_file.is_open()) {
+        std::cerr << "Failed to open /proc/self/stat" << std::endl;
+        return 1;
+    }
+    pid_t parent_pid_proc;
+    parent_stat_file >> parent_pid_proc;
+    parent_stat_file.close();
+    if (parent_pid_proc != parent_pid_vdso) {
+        std::cerr << "Parent PID mismatch: pid from /proc/self/stat is " << parent_pid_proc
+                  << ", pid from vDSO is " << parent_pid_vdso << std::endl;
+    } else {
+        std::cout << "Parent PID matches: " << parent_pid_proc << std::endl;
+    }
     return 0;
 }
