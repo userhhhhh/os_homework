@@ -19,6 +19,8 @@ kvm/**
 !kvm/linux-5.15.178/arch/x86/entry/syscalls/syscall_64.tbl
 
 !kvm/linux-5.15.178/arch/x86/entry/vdso
+!kvm/linux-5.15.178/arch/x86/entry/vdso/Makefile
+!kvm/linux-5.15.178/arch/x86/entry/vdso/vdso-layout.lds.S
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vma.c
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vdso.lds.S
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vget_task_struct_info.c
