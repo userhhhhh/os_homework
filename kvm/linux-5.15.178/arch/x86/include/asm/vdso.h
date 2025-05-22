@@ -33,6 +33,18 @@ struct vdso_image {
 	long sym_vdso32_rt_sigreturn_landing_pad;
 };
 
+struct task_info {
+    pid_t pid;
+    void *task_struct_ptr;
+    // ...其他字段
+} __attribute__((packed));
+
+// 声明 VDSO 导出的共享结构体指针
+extern struct task_info __vtask_info;
+
+// 声明你定义的 vdso 函数
+int __vdso_get_task_struct_info(struct task_info *info);
+
 #ifdef CONFIG_X86_64
 extern const struct vdso_image vdso_image_64;
 #endif

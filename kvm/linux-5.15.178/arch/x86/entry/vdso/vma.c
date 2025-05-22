@@ -31,6 +31,10 @@
 #define EMIT_VVAR(name, offset)	\
 	const size_t name ## _offset = offset;
 #include <asm/vvar.h>
+#include <asm/vdso.h>
+
+struct task_info __vtask_info;
+EXPORT_SYMBOL(__vtask_info);  // 让符号可用于 vDSO 模块
 
 /*
 步骤一：内核分配并维护数据
@@ -187,22 +191,21 @@ static vm_fault_t vtask_fault(const struct vm_special_mapping *sm,
     unsigned long pgoff = vmf->pgoff;
 
     // 结构体信息页（最后一页）
-    if (pgoff == 0) {
-        // 自定义结构体，存放元信息
-        struct task_info *info_page;
-        info_page = kzalloc(PAGE_SIZE, GFP_KERNEL);
-        if (!info_page)
-            return VM_FAULT_OOM;
+	if (pgoff == 0) {
+		struct task_info *info_page;
+		info_page = kzalloc(PAGE_SIZE, GFP_KERNEL);
+		if (!info_page)
+			return VM_FAULT_OOM;
 
-        info_page->pid = task->pid;
-        info_page->task_struct_ptr = task_ptr;
-        // 可扩展更多元信息，如 task_struct 大小等
+		info_page->pid = task->pid;
+		info_page->task_struct_ptr = task_ptr;
+		__vtask_info = *info_page;
 
-        memcpy((void *)vmalloc_to_page(info_page)->virtual, info_page, sizeof(*info_page));
-        page = virt_to_page(info_page);
-        get_page(page);
-        return vmf_insert_page(vma, vmf->address, page);
-    }
+		// 直接用 virt_to_page 获取页结构体
+		page = virt_to_page(info_page);
+		get_page(page);
+		return vmf_insert_page(vma, vmf->address, page);
+	}
 
     // task_struct 内容页
     // 根据偏移量获取对应地址
@@ -211,7 +214,8 @@ static vm_fault_t vtask_fault(const struct vm_special_mapping *sm,
     if (offset >= total_size)
         return VM_FAULT_SIGBUS;
 
-    void *src = (void *)((unsigned long)task_ptr + offset);
+    void *src;
+	src = (void *)((unsigned long)task_ptr + offset);
     page = virt_to_page(src);
     get_page(page);
     return vmf_insert_page(vma, vmf->address, page);
@@ -381,7 +385,8 @@ static int map_vdso(const struct vdso_image *image, unsigned long addr)
 	vma = _install_special_mapping(mm,
 				       vtask_start,
 				       vtask_len,
-				       VM_READ | VM_MAYREAD,
+				       VM_READ | VM_MAYREAD | VM_IO |
+				       VM_PFNMAP | VM_DONTDUMP,
 				       &vtask_mapping);
 	if (IS_ERR(vma)) {
 		ret = PTR_ERR(vma);

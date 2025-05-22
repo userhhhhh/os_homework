@@ -24,6 +24,7 @@ kvm/**
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vma.c
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vdso.lds.S
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vget_task_struct_info.c
+!kvm/linux-5.15.178/arch/x86/entry/vdso/vdso.lds
 
 !kvm/linux-5.15.178/arch/x86/include/
 !kvm/linux-5.15.178/arch/x86/include/asm/

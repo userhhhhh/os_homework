@@ -61,8 +61,8 @@ init_build:
 	build"
 
 kv_test:
-	g++ -static -o ./ctest/$(project) ./ctest/$(project).cpp
-	cp ./ctest/$(project) ./kvm/busybox-1.35.0/_install/bin/
+	# g++ -static -o ./ctest/$(project) ./ctest/$(project).cpp
+	# cp ./ctest/$(project) ./kvm/busybox-1.35.0/_install/bin/
 	cd kvm/busybox-1.35.0/_install && \
 	find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
 	make only_kernel
