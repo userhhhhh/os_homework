@@ -490,7 +490,6 @@ timens__vdso_data = timens_page + 128;
 	 * Text is well-separated from actual data: there's plenty of
 	 * stuff that isn't used at runtime in between.
 	 */
-
  .text : {
   *(.text*)
   *(.fixup)

@@ -33,17 +33,28 @@ struct vdso_image {
 	long sym_vdso32_rt_sigreturn_landing_pad;
 };
 
-struct task_info {
-    pid_t pid;
-    void *task_struct_ptr;
-    // ...其他字段
-} __attribute__((packed));
+#define TASK_STRUCT_PAGE_NUMBER (5) 
 
-// 声明 VDSO 导出的共享结构体指针
-extern struct task_info __vtask_info;
+// struct task_info {
+//     pid_t pid;
+//     void *task_struct_ptr;
+//     // ...其他字段
+// } __attribute__((packed));
 
-// 声明你定义的 vdso 函数
-int __vdso_get_task_struct_info(struct task_info *info);
+// // 声明 VDSO 导出的共享结构体指针
+// extern struct task_info __vtask_info;
+
+// // 声明你定义的 vdso 函数
+// int __vdso_get_task_struct_info(struct task_info *info);
+
+// struct task_info {
+//     pid_t pid;
+//     void *task_struct_ptr;
+//     // ... 可以扩展
+// } __attribute__((packed));
+
+// // 声明为变量（不是 const），要被写入
+// DECLARE_VVAR(128, struct task_info, __vtask_info);  // 偏移可以根据你实际放置的位置设置
 
 #ifdef CONFIG_X86_64
 extern const struct vdso_image vdso_image_64;

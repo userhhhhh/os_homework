@@ -1,13 +1,13 @@
 // vget_task_struct_info.c
 
-#include <linux/kernel.h>
-#include <linux/types.h>
 #include <linux/time.h>
-#include <linux/sched.h>
-#include <linux/unistd.h>
+#include <linux/types.h>
+#include <linux/vdso_task.h>
+#include <asm/unistd.h>
+#include <asm/vgtod.h>
 #include <asm/vdso.h>
-// #include <asm/vvar.h>
-#include <asm/vdso/gettimeofday.h>
+#include <asm/vvar.h>
+#include <asm/processor.h>
 
 // redefinition
 // // 用户空间结构体定义（应与用户态一致）
@@ -18,16 +18,38 @@
 // };
 
 // __vtask_base 是链接符号，位于 vtask 区域起始
-extern struct task_info __vtask_info;
+// extern struct task_info __vtask_info;
+// struct task_info __attribute__((section(".vtask_info_section"))) __vtask_info = {
+//     .pid = 1234,
+//     .task_struct_ptr = (void *)0xdeadbeef
+// };
 
 // 核心函数：直接读取 vtask 映射区域中的 task_info 内容
-notrace int __vdso_get_task_struct_info(struct task_info *info)
+int __vdso_get_task_struct_info(struct task_info *info)
 {
-    if (!info)
-        return -1;
+    const struct vdso_data *vdata;
+    void __user *vtask_start_addr, *vinfo_start_addr;
+    struct my_task_info{
+		unsigned long offset; // 第一页的 offset
+        unsigned long page_number; // 占据的页的个数
+        unsigned long struct_size; // 整个task的大小
+        unsigned long judge;
+	} *the_info;
 
-    // 拷贝只读共享区域的数据到用户传入的 info
-    *info = __vtask_info;
+    if (!info) return -1;
+    vdata = __arch_get_vdso_data();
+    if (!vdata) return -EINVAL;
+
+    vinfo_start_addr = (void __user *)(((unsigned long)vdata >> PAGE_SHIFT << PAGE_SHIFT) - PAGE_SIZE);  
+    
+    the_info = (struct my_task_info *)vinfo_start_addr;
+    if (the_info->judge != 114514){
+        return -1;
+    }
+    vtask_start_addr = vinfo_start_addr - TASK_STRUCT_PAGE_NUMBER * PAGE_SIZE + the_info->offset; 
+
+    info->task_struct_ptr = vtask_start_addr;
+    info->pid = *(pid_t *)((char *)info->task_struct_ptr + offsetof(struct task_struct, pid));
 
     return 0;
 }

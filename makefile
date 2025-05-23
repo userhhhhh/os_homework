@@ -17,7 +17,16 @@ only_ovmf:
 		-nographic \
 		-drive if=pflash,format=raw,unit=0,file="${OVMF_DIR}/OVMF_CODE.fd",readonly=on \
 		-drive if=pflash,format=raw,unit=1,file="${OVMF_DIR}/OVMF_VARS.fd" \
-		-enable-kvm
+		-enable-kvm\
+
+start_uefi:
+	sudo qemu-system-x86_64 \
+		-m 4096 \
+		-nographic \
+		-drive if=pflash,format=raw,unit=0,file="${OVMF_DIR}/OVMF_CODE.fd",readonly=on \
+		-drive if=pflash,format=raw,unit=1,file="${OVMF_DIR}/OVMF_VARS.fd" \
+		-drive file=fat:rw:./uefi,format=raw,if=ide,index=0 \
+		-enable-kvm\
 
 kernel_and_ovmf:
 	sudo qemu-system-x86_64 \
@@ -61,11 +70,14 @@ init_build:
 	build"
 
 kv_test:
-	# g++ -static -o ./ctest/$(project) ./ctest/$(project).cpp
-	# cp ./ctest/$(project) ./kvm/busybox-1.35.0/_install/bin/
+	g++ -static -o ./ctest/$(project) ./ctest/$(project).cpp
+	cp ./ctest/$(project) ./kvm/busybox-1.35.0/_install/bin/
 	cd kvm/busybox-1.35.0/_install && \
 	find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
 	make only_kernel
+
+copy_MyAcpiView:
+	cp ./esp/MyAcpiView.efi ./uefi
 
 	
 	

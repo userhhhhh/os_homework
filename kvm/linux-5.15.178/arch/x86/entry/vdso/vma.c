@@ -33,8 +33,8 @@
 #include <asm/vvar.h>
 #include <asm/vdso.h>
 
-struct task_info __vtask_info;
-EXPORT_SYMBOL(__vtask_info);  // 让符号可用于 vDSO 模块
+// struct task_info __vtask_info;
+// EXPORT_SYMBOL(__vtask_info);  // 让符号可用于 vDSO 模块
 
 /*
 步骤一：内核分配并维护数据
@@ -182,43 +182,39 @@ static inline struct page *find_timens_vvar_page(struct vm_area_struct *vma)
 static vm_fault_t vtask_fault(const struct vm_special_mapping *sm,
 		      struct vm_area_struct *vma, struct vm_fault *vmf)
 {
-	unsigned long total_size, offset;
     struct task_struct *task = current;
-    struct page *page = NULL;
-    void *task_ptr = task;
+	unsigned long task_phys_addr = virt_to_phys(task);
+	unsigned long task_start_page = task_phys_addr >> PAGE_SHIFT;
 
-    // 以页为单位的偏移量，从末页起倒数
-    unsigned long pgoff = vmf->pgoff;
-
-    // 结构体信息页（最后一页）
-	if (pgoff == 0) {
-		struct task_info *info_page;
-		info_page = kzalloc(PAGE_SIZE, GFP_KERNEL);
-		if (!info_page)
+    if (vmf->pgoff > TASK_STRUCT_PAGE_NUMBER || vmf->pgoff < 0) {
+        printk("pgoff error\n");
+        return -1;
+    } else if (vmf->pgoff < TASK_STRUCT_PAGE_NUMBER) { // 缺页的是 task_struct 部分，注意是 0_base
+		printk(KERN_ERR "task_struct page fault pgoff: %ld\n", vmf->pgoff);
+        return vmf_insert_pfn_prot(vma, vmf->address, task_start_page + vmf->pgoff, 
+            pgprot_noncached(vma->vm_page_prot));
+    } else { // 缺页的是 my_task_info 部分
+		struct my_task_info{
+			unsigned long offset; // 第一页的 offset
+			unsigned long page_number; // 占据的页的个数
+			unsigned long struct_size; // 整个task的大小
+			unsigned long judge;
+		} *the_info;
+		struct page* the_info_page;
+		printk(KERN_ERR "my_task_info page fault pgoff: %ld\n", vmf->pgoff);
+		the_info_page = alloc_page(GFP_KERNEL);
+		if (!the_info_page) {
+			printk(KERN_ERR "fuck you\n");
 			return VM_FAULT_OOM;
-
-		info_page->pid = task->pid;
-		info_page->task_struct_ptr = task_ptr;
-		__vtask_info = *info_page;
-
-		// 直接用 virt_to_page 获取页结构体
-		page = virt_to_page(info_page);
-		get_page(page);
-		return vmf_insert_page(vma, vmf->address, page);
-	}
-
-    // task_struct 内容页
-    // 根据偏移量获取对应地址
-    offset = (pgoff - 1) << PAGE_SHIFT;
-    total_size = sizeof(struct task_struct);
-    if (offset >= total_size)
-        return VM_FAULT_SIGBUS;
-
-    void *src;
-	src = (void *)((unsigned long)task_ptr + offset);
-    page = virt_to_page(src);
-    get_page(page);
-    return vmf_insert_page(vma, vmf->address, page);
+		}
+		the_info = page_address(the_info_page);
+		the_info->offset = task_phys_addr & ~PAGE_MASK;
+		the_info->page_number = 6;
+		the_info->struct_size = sizeof(struct task_struct);
+		the_info->judge = 114514;
+		vmf->page = the_info_page;
+		return 0;
+    }
 }
 
 static vm_fault_t vvar_fault(const struct vm_special_mapping *sm,
@@ -329,40 +325,44 @@ static const struct vm_special_mapping vtask_mapping = {
  * @addr           - request a specific address (zero to map at free addr)
  */
  
-#define VDSO_VTASK_PAGES 5
-#define VDSO_VTASK_SIZE  (VDSO_VTASK_PAGES * PAGE_SIZE)
+// #define VDSO_VTASK_PAGES 5
+// #define VDSO_VTASK_SIZE  (VDSO_VTASK_PAGES * PAGE_SIZE)
 
 static int map_vdso(const struct vdso_image *image, unsigned long addr)
 {
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma;
 	unsigned long text_start;
-	unsigned long vvar_len = -image->sym_vvar_start;
-	unsigned long vtask_len = VDSO_VTASK_SIZE;
-	unsigned long total_len = vtask_len + vvar_len + image->size;
+	unsigned long vtask_len;
 	int ret = 0;
 
 	if (mmap_write_lock_killable(mm))
 		return -EINTR;
 
-	addr = get_unmapped_area(NULL, addr, total_len, 0, 0);
+	// addr：在进程的虚拟地址空间中寻找一块未映射的连续内存区域
+	addr = get_unmapped_area(NULL, addr,
+				 image->size - image->sym_vvar_start, 0, 0);
+
+	vtask_len = TASK_STRUCT_PAGE_NUMBER * PAGE_SIZE + PAGE_SIZE;
+	addr += vtask_len;
+
+	printk(KERN_ERR "start map_vdso: %lx\n", addr);
+
 	if (IS_ERR_VALUE(addr)) {
 		ret = addr;
 		goto up_fail;
 	}
 
-	// 布局：vtask_start | vvar_start | vdso
-	unsigned long vtask_start = addr;
-	unsigned long vvar_start = vtask_start + vtask_len;
-	text_start = vvar_start + vvar_len;
+	text_start = addr - image->sym_vvar_start;
 
 	// 映射 vdso
 	vma = _install_special_mapping(mm,
 				       text_start,
 				       image->size,
-				       VM_READ | VM_EXEC |
-				       VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC,
+				       VM_READ|VM_EXEC|
+				       VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
 				       &vdso_mapping);
+
 	if (IS_ERR(vma)) {
 		ret = PTR_ERR(vma);
 		goto up_fail;
@@ -370,32 +370,38 @@ static int map_vdso(const struct vdso_image *image, unsigned long addr)
 
 	// 映射 vvar
 	vma = _install_special_mapping(mm,
-				       vvar_start,
-				       vvar_len,
-				       VM_READ | VM_MAYREAD | VM_IO |
-				       VM_PFNMAP | VM_DONTDUMP,
+				       addr,
+				       -image->sym_vvar_start,
+				       VM_READ|VM_MAYREAD|VM_IO|VM_DONTDUMP|
+				       VM_PFNMAP,
 				       &vvar_mapping);
+
 	if (IS_ERR(vma)) {
 		ret = PTR_ERR(vma);
 		do_munmap(mm, text_start, image->size, NULL);
 		goto up_fail;
-	}
+	} 
 
 	// 映射 vtask
 	vma = _install_special_mapping(mm,
-				       vtask_start,
+				       addr - vtask_len,
 				       vtask_len,
-				       VM_READ | VM_MAYREAD | VM_IO |
-				       VM_PFNMAP | VM_DONTDUMP,
+				       VM_READ|VM_MAYREAD|VM_IO|VM_DONTDUMP|
+				       VM_PFNMAP,
 				       &vtask_mapping);
+	
 	if (IS_ERR(vma)) {
 		ret = PTR_ERR(vma);
-		do_munmap(mm, text_start, image->size + vvar_len, NULL);
+		do_munmap(mm, text_start, image->size, NULL);
+		do_munmap(mm, addr, -image->sym_vvar_start, NULL);
 		goto up_fail;
+	} else {
+		current->mm->context.vdso = (void __user *)text_start;
+		current->mm->context.vdso_image = image;
+		current->mm->context.vtask = (void __user *)(addr - vtask_len);
 	}
 
-	current->mm->context.vdso = (void __user *)text_start;
-	current->mm->context.vdso_image = image;
+	printk(KERN_ERR "end map_vdso: %lx\n", addr);
 
 up_fail:
 	mmap_write_unlock(mm);

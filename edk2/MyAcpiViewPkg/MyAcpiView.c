@@ -56,6 +56,10 @@ UefiMain(
             break;
         }
     }
+    EFI_ACPI_DESCRIPTION_HEADER emptyTable = {0};
+    ChangeACPITable(1, &emptyTable);
+    ChangeACPITable(2, &emptyTable);
+    Print(L"All completed\n");
     return 0;
 }
 
