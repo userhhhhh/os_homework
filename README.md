@@ -11,14 +11,14 @@ See tutorial at [https://github.com/peterzheng98/os-2024-tutorial](https://githu
   - [./MyAcpiViewPkg/MyAcpiView.c](./MyAcpiViewPkg/MyAcpiView.c)
 - [x] 实践：Hack ACPI Table
   - [./MyAcpiViewPkg/MyAcpiView.c](./MyAcpiViewPkg/MyAcpiView.c)
-- [ ] 设计：UEFI 运行时服务
+- [x] 设计：UEFI 运行时服务
 
 ### 系统调用
 
 - [x] 基础：用户定义的系统调用
   - [x] learn: [Adding a New System Call](https://www.kernel.org/doc/html/v5.15/process/adding-syscalls.html)
   - [x] learn: Adding a New field to the `task_struct` [1](https://stackoverflow.com/questions/8044652/adding-entry-to-task-struct-and-initializing-to-default-value) [2](https://www.linuxquestions.org/questions/programming-9/adding-a-new-field-to-task_struct-310638/)
-- [ ] 实践：vDSO
+- [x] 实践：vDSO
 - [ ] 设计：无需中断的系统调用
 
 ### 内存管理
@@ -30,7 +30,7 @@ See tutorial at [https://github.com/peterzheng98/os-2024-tutorial](https://githu
 ### 文件系统
 
 - [x] 基础：inode 和扩展属性管理
-- [ ] 实践：FUSE
+- [x] 实践：FUSE
 - [ ] 设计：用户空间下的内存磁盘
 
 ### 网络与外部设备

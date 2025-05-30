@@ -1,0 +1,5 @@
+[Defines]
+  DEC_SPECIFICATION = 0x00010005
+  PACKAGE_NAME      = MyAddAcpiPkg
+  PACKAGE_GUID      = d6cf375a-7885-438f-8cca-0bde7304e434
+  PACKAGE_VERSION   = 0.1

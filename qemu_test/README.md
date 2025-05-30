@@ -5,7 +5,7 @@
 ### task 3.1
 
 - 所有实现在 MyAcpiViewPkg 里面
-- 退出：Ctrl+A && C && quit
+- 退出：Ctrl+A && X
 
 ```bash
 cd ~/os_homework && make init_build 
@@ -33,6 +33,32 @@ bzImage initrd=initramfs.cpio.gz init=/init console=ttyS0
 dmesg | grep ACPI
 ```
 
+### task 3.3
+
+先导入 `MyAddAcpi.efi` 文件。
+注意修改 `./edk2/Conf/target.txt` 文件。
+然后打开内核：
+
+```bash
+cd ~/os_homework && make init_build 
+cp /home/hqs123/os_homework/edk2/Build/MyAddAcpiPkg/DEBUG_GCC5/X64/MyAddAcpi.efi ./esp
+cd ~/os_homework && make only_kernel
+ls /sys/kernel
+```
+
+退出，打开 uefi
+
+```bash
+cd ~/os_homework/kvm/linux-5.15.178 && make -j$(nproc) 
+cp /home/hqs123/os_homework/edk2/Build/MyAddAcpiPkg/DEBUG_GCC5/X64/MyAddAcpi.efi ./uefi
+cd ~/os_homework && make copy_bzImage
+make start_uefi
+run MyAddAcpi.efi
+bzImage initrd=initramfs.cpio.gz init=/init console=ttyS0
+ls /sys/kernel
+cat /sys/kernel/mytb_acpi/message
+```
+
 ## task 4
 
 ### task 4.1
@@ -57,4 +83,22 @@ cd ~/os_homework && make kv_test project=test_basic
 ```bash
 cd ~/os_homework/kvm/linux-5.15.178 && make -j$(nproc) 
 make kv_test project=vdso666
+```
+
+## task 6
+
+### task 6.2
+
+在一个终端：
+
+```bash
+cd ~/os_homework/fuse && python3 ./gptfs.py ./gptfs_mount
+```
+
+在另一个终端：
+
+```bash
+cd ~/os_homework/fuse && mkdir ./gptfs_mount/test1
+echo "What is Python?" > ./gptfs_mount/test1/input 
+cat ./gptfs_mount/test1/output
 ```

@@ -79,6 +79,9 @@ kv_test:
 copy_MyAcpiView:
 	cp ./esp/MyAcpiView.efi ./uefi
 
+copy_bzImage:
+	cp ./kvm/linux-5.15.178/arch/x86/boot/bzImage ./uefi
+	
 	
 	
 
