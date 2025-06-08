@@ -35,6 +35,11 @@ kvm/**
 # !kvm/linux-5.15.178/arch/x86/include/asm/mmu_context.h
 # !kvm/linux-5.15.178/arch/x86/include/asm/vdso.h
 
+!kvm/linux-5.15.178/fs/
+!kvm/linux-5.15.178/fs/ramfs/
+!kvm/linux-5.15.178/fs/ramfs/inode.c
+!kvm/linux-5.15.178/fs/ramfs/file-mmu.c
+!kvm/linux-5.15.178/fs/ramfs/file-nommu.c
 
 !kvm/linux-5.15.178/include/
 !kvm/linux-5.15.178/include/linux/
@@ -48,6 +53,10 @@ kvm/**
 !kvm/linux-5.15.178/drivers/
 !kvm/linux-5.15.178/drivers/acpi/
 !kvm/linux-5.15.178/drivers/acpi/mytb_reader.c
+
+!kvm/busybox-1.35.0/
+!kvm/busybox-1.35.0/_install/
+!kvm/busybox-1.35.0/_install/init
 
 xv6_uefi/
 

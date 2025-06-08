@@ -1,0 +1,15 @@
+#!/bin/sh
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t tmpfs none /tmp
+mount -t devtmpfs none /dev
+
+echo
+echo "Hello Linux"
+
+
+echo "This boot took $(cut -d' ' -f1 /proc/uptime) seconds"
+echo
+
+exec /bin/sh
+
