@@ -40,6 +40,7 @@ kvm/**
 !kvm/linux-5.15.178/fs/ramfs/inode.c
 !kvm/linux-5.15.178/fs/ramfs/file-mmu.c
 !kvm/linux-5.15.178/fs/ramfs/file-nommu.c
+!kvm/linux-5.15.178/fs/ramfs/internal.h
 
 !kvm/linux-5.15.178/include/
 !kvm/linux-5.15.178/include/linux/
@@ -72,3 +73,8 @@ ubuntu-24.04.1-desktop-amd64.iso
 ubuntu-24.04.2-live-server-amd64.iso
 
 work_log.md
+
+a.disk
+disk.qcow2
+inode.c
+QCOW2

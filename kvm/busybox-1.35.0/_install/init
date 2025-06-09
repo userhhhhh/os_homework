@@ -3,13 +3,63 @@ mount -t proc none /proc
 mount -t sysfs none /sys
 mount -t tmpfs none /tmp
 mount -t devtmpfs none /dev
+echo "Hello Linux!"
 
-echo
-echo "Hello Linux"
+# 创建需要的目录
+mkdir -p /mnt/shared
+mkdir -p /mnt/ramfs
+mkdir -p /var/ramfs_sync
 
+# # 挂载分区到同步目录
+mount /dev/sda1 /var/ramfs_sync
+chmod 755 /var/ramfs_sync
 
-echo "This boot took $(cut -d' ' -f1 /proc/uptime) seconds"
-echo
+# 挂载 ramfs
+echo "1. 挂载 ramfs"
+mount -t ramfs none /mnt/ramfs
 
+# 等待 procfs 接口准备好
+echo "2. 等待 procfs 接口准备就绪..."
+while [ ! -d /proc/fs/ramfs ]; do
+    sleep 1
+    echo "等待 /proc/fs/ramfs ..."
+done
+
+# 设置绑定关系：将 /mnt/ramfs 同步到 /var/ramfs_sync（RAM 内部）
+echo "3. 设置绑定关系"
+echo "/mnt/ramfs /var/ramfs_sync" > /proc/fs/ramfs/bind
+
+# 检查绑定状态
+echo "4. 当前绑定状态："
+cat /proc/fs/ramfs/bind
+
+# 写入测试文件
+echo "5. 写入测试文件"
+echo "Hello from RAMfs" > /mnt/ramfs/test.txt
+sync /mnt/ramfs/test.txt
+
+# 检查内容是否同步
+echo "6. 检查同步结果"
+echo "RAMfs:"
+ls -la /mnt/ramfs
+cat /mnt/ramfs/test.txt
+
+echo "同步目录:"
+ls -la /var/ramfs_sync
+cat /var/ramfs_sync/test.txt
+
+# 手动 sync 一个文件测试
+echo "7. 测试手动同步"
+echo "Manual sync test" > /mnt/ramfs/manual.txt
+echo "/mnt/ramfs/manual.txt" > /proc/fs/ramfs/sync
+
+# 查看同步结果
+echo "同步目录 (手动同步后):"
+ls -la /var/ramfs_sync
+cat /var/ramfs_sync/manual.txt
+
+echo "RAMfs 同步测试完成"
+
+# 启动交互 shell
 exec /bin/sh
 

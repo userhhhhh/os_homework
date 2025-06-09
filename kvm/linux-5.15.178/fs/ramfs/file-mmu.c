@@ -38,11 +38,18 @@ static unsigned long ramfs_mmu_get_unmapped_area(struct file *file,
 	return current->mm->get_unmapped_area(file, addr, len, pgoff, flags);
 }
 
+/* 实现文件系统同步函数 */
+static int ramfs_fsync(struct file *file, loff_t start, loff_t end, int datasync)
+{
+    /* 调用我们的持久化函数 */
+    return ramfs_file_flush(file);
+}
+
 const struct file_operations ramfs_file_operations = {
 	.read_iter	= generic_file_read_iter,
 	.write_iter	= generic_file_write_iter,
 	.mmap		= generic_file_mmap,
-	.fsync		= noop_fsync,
+	.fsync		= ramfs_fsync,  /* 替换为我们的fsync实现 */
 	.splice_read	= generic_file_splice_read,
 	.splice_write	= iter_file_splice_write,
 	.llseek		= generic_file_llseek,
