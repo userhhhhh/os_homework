@@ -313,168 +313,6 @@ static struct file_system_type ramfs_fs_type = {
 	.fs_flags	= FS_USERNS_MOUNT,
 };
 
-// static int __init init_ramfs_fs(void)
-// {
-// 	return register_filesystem(&ramfs_fs_type);
-// }
-// fs_initcall(init_ramfs_fs);
-
-// /**
-//  * ramfs_bind - 绑定同步目录
-//  * @sync_dir: 同步目录的路径
-//  *
-//  * 设置用于持久化存储ramfs文件的目录
-//  * 返回0表示成功，负数表示错误码
-//  */
-// int ramfs_bind(const char *sync_dir)
-// {
-//     char *new_dir;
-//     int ret = 0;
-//     struct path path;
-
-//     if (!sync_dir)
-//         return -EINVAL;
-
-//     /* 验证同步目录路径是否有效 */
-//     ret = kern_path(sync_dir, LOOKUP_FOLLOW, &path);
-//     if (ret)
-//         return ret;
-
-//     /* 确保它是一个目录 */
-//     if (!S_ISDIR(d_inode(path.dentry)->i_mode)) {
-//         ret = -ENOTDIR;
-//         goto out;
-//     }
-
-//     /* 确保我们有写权限 */
-//     if (!(d_inode(path.dentry)->i_mode & S_IWUSR)) {
-//         ret = -EACCES;
-//         goto out;
-//     }
-
-//     mutex_lock(&ramfs_sync_mutex);
-
-//     /* 复制路径字符串 */
-//     new_dir = kstrdup(sync_dir, GFP_KERNEL);
-//     if (!new_dir) {
-//         ret = -ENOMEM;
-//         mutex_unlock(&ramfs_sync_mutex);
-//         goto out;
-//     }
-
-//     /* 如果已存在旧目录，释放它 */
-//     kfree(ramfs_sync_dir);
-//     ramfs_sync_dir = new_dir;
-
-//     mutex_unlock(&ramfs_sync_mutex);
-//     pr_info("RAMfs: Bound to sync directory %s\n", ramfs_sync_dir);
-
-// out:
-//     path_put(&path);
-//     return ret;
-// }
-// EXPORT_SYMBOL(ramfs_bind);
-
-// /**
-//  * ramfs_file_flush - 将ramfs文件刷新到持久存储
-//  * @file: 要持久化的文件
-//  *
-//  * 把ramfs文件的内容写入到已绑定的同步目录中
-//  * 返回0表示成功，负数表示错误码
-//  */
-// int ramfs_file_flush(struct file *file)
-// {
-//     struct dentry *dentry = file->f_path.dentry;
-//     struct inode *inode = d_inode(dentry);
-//     const char *filename = dentry->d_name.name;
-//     char *filepath = NULL;
-//     struct file *sync_file = NULL;
-//     loff_t pos = 0;
-//     int ret = 0;
-//     char *buf = NULL;
-//     ssize_t bytes;
-//     size_t len;
-//     loff_t size;
-
-//     /* 如果没有设置同步目录，直接返回成功 */
-//     mutex_lock(&ramfs_sync_mutex);
-//     if (!ramfs_sync_dir) {
-//         mutex_unlock(&ramfs_sync_mutex);
-//         return 0;
-//     }
-//     mutex_unlock(&ramfs_sync_mutex);
-
-//     /* 构造完整的文件路径 */
-//     filepath = kmalloc(PATH_MAX, GFP_KERNEL);
-//     if (!filepath)
-//         return -ENOMEM;
-
-//     mutex_lock(&ramfs_sync_mutex);
-//     if (snprintf(filepath, PATH_MAX, "%s/%s", ramfs_sync_dir, filename) >= PATH_MAX) {
-//         ret = -ENAMETOOLONG;
-//         mutex_unlock(&ramfs_sync_mutex);
-//         goto out_free_path;
-//     }
-//     mutex_unlock(&ramfs_sync_mutex);
-
-//     /* 以"写+截断"模式打开同步文件（用于原子写入） */
-//     sync_file = filp_open(filepath, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-//     if (IS_ERR(sync_file)) {
-//         ret = PTR_ERR(sync_file);
-//         goto out_free_path;
-//     }
-
-//     /* 分配缓冲区以复制文件内容 */
-//     size = i_size_read(inode);
-//     if (size == 0) {
-//         /* 空文件，仅创建即可 */
-//         ret = 0;
-//         goto out_close_file;
-//     }
-
-//     /* 使用可能的最大页大小作为我们的缓冲区大小 */
-//     len = PAGE_SIZE;
-//     buf = kmalloc(len, GFP_KERNEL);
-//     if (!buf) {
-//         ret = -ENOMEM;
-//         goto out_close_file;
-//     }
-
-//     /* 逐块读取文件内容并写入同步文件 */
-//     while (pos < size) {
-//         ssize_t bytes_to_read = min_t(size_t, len, size - pos);
-        
-//         /* 从ramfs文件读取 */
-//         bytes = kernel_read(file, buf, bytes_to_read, &pos);
-//         if (bytes < 0) {
-//             ret = bytes;
-//             goto out_free_buf;
-//         }
-        
-//         if (bytes == 0)
-//             break;
-            
-//         /* 写入同步文件 */
-//         bytes = kernel_write(sync_file, buf, bytes, &pos);
-//         if (bytes < 0) {
-//             ret = bytes;
-//             goto out_free_buf;
-//         }
-//     }
-    
-//     /* 确保数据被写入磁盘 */
-//     ret = vfs_fsync(sync_file, 0);
-    
-// out_free_buf:
-//     kfree(buf);
-// out_close_file:
-//     filp_close(sync_file, NULL);
-// out_free_path:
-//     kfree(filepath);
-//     return ret;
-// }
-// EXPORT_SYMBOL(ramfs_file_flush);
-
 /**
  * parse_mount_path - 解析挂载路径和目标目录
  * @buffer: 用户输入的字符串
@@ -605,6 +443,7 @@ int ramfs_file_flush(struct file *file)
     char *temp_path = NULL;
 	char fullpath[PATH_MAX];
     char *pathname;
+    // pid_t pid;
 
     pr_info("RAMfs: flushing file %s\n", file->f_path.dentry->d_name.name);
     
@@ -645,6 +484,8 @@ int ramfs_file_flush(struct file *file)
 
     /* 创建临时文件路径 */
     snprintf(filepath, PATH_MAX, "%s/.%s.tmp", temp_path, filename);
+    // pid = task_pid_nr(current);
+    // snprintf(filepath, PATH_MAX, "%s/.%s.%d.tmp", temp_path, filename, pid);
     
     /* 以"写+截断"模式打开临时文件 */
     sync_file = filp_open(filepath, O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -745,6 +586,7 @@ int ramfs_file_flush(struct file *file)
         
         /* 获取临时文件路径 */
         snprintf(tmp_path, PATH_MAX, "%s/.%s.tmp", temp_path, filename);
+        // snprintf(filepath, PATH_MAX, "%s/.%s.%d.tmp", temp_path, filename, pid);
         ret = kern_path(tmp_path, 0, &old_path);
         if (ret) {
             pr_err("RAMfs: Failed to get temp file path: %d\n", ret);
