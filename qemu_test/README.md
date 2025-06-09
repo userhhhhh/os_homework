@@ -89,6 +89,12 @@ make kv_test project=vdso666
 
 ### task 5.2
 
+先在本地创建磁盘镜像
+
+```bash
+cd ~/os_homework && make qcow2
+```
+
 先编译内核再编译 busybox，最后跑内核
 
 ```bash
@@ -99,6 +105,11 @@ cd ~/os_homework && make kv_test_c project=ramfs_consistency_test
 cd ~/os_homework && make kv_test_c project=ramfs_crash_test
 ./bin/ramfs_persistence_test
 ./bin/ramfs_consistency_test
+./bin/ramfs_crash_test
+```
+
+```bash
+cd ~/os_homework && make kv_test_c project=ramfs_crash_test
 ./bin/ramfs_crash_test
 ```
 
