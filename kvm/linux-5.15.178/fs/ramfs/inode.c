@@ -736,6 +736,7 @@ int ramfs_file_flush(struct file *file)
         char *tmp_path = kmalloc(PATH_MAX, GFP_KERNEL);
         char *final_name = NULL;
         struct renamedata rd;  // 使用 renamedata 结构体
+        struct inode *dir_inode;
         
         if (!tmp_path) {
             ret = -ENOMEM;
@@ -759,6 +760,10 @@ int ramfs_file_flush(struct file *file)
             kfree(tmp_path);
             goto out_free_buf;
         }
+
+        /* 获取目录的 inode 并锁定 */
+        dir_inode = d_inode(new_dir_path.dentry);
+        inode_lock(dir_inode);
         
         /* 在目标目录中查找或创建文件名 */
         final_name = (char *)filename;
@@ -766,6 +771,7 @@ int ramfs_file_flush(struct file *file)
         if (IS_ERR(new_dentry)) {
             ret = PTR_ERR(new_dentry);
             pr_err("RAMfs: Failed to lookup target file: %d\n", ret);
+            inode_unlock(dir_inode);  // 确保解锁
             path_put(&old_path);
             path_put(&new_dir_path);
             kfree(tmp_path);
@@ -776,7 +782,7 @@ int ramfs_file_flush(struct file *file)
         rd.old_dentry = old_path.dentry;
         rd.old_dir = d_inode(old_path.dentry->d_parent);
         rd.new_dentry = new_dentry;
-        rd.new_dir = d_inode(new_dir_path.dentry);
+        rd.new_dir = dir_inode;  // 使用已获取的指针
         rd.flags = 0;
         
         /* 执行原子重命名操作 */
@@ -788,6 +794,7 @@ int ramfs_file_flush(struct file *file)
             pr_info("RAMfs: Successfully synced file %s\n", filename);
         
         dput(new_dentry);
+        inode_unlock(dir_inode);  // 解锁 inode
         path_put(&old_path);
         path_put(&new_dir_path);
         kfree(tmp_path);

@@ -99,7 +99,6 @@ cd ~/os_homework && make qcow2
 
 ```bash
 cd ~/os_homework/kvm/linux-5.15.178 && make -j$(nproc) 
-cd ~/os_homework && make only_kernel
 cd ~/os_homework && make kv_test_c project=ramfs_persistence_test
 cd ~/os_homework && make kv_test_c project=ramfs_consistency_test
 cd ~/os_homework && make kv_test_c project=ramfs_crash_test

@@ -1,16 +1,16 @@
 # OS 2024 HomeWork
 
-See tutorial at [https://github.com/peterzheng98/os-2024-tutorial](https://github.com/peterzheng98/os-2024-tutorial).
+See tutorial at [os-2024-tutorial](https://github.com/peterzheng98/os-2024-tutorial).
 
 ## TODO
 
 ### 系统启动
 
 - [x] 基础：Read ACPI Table
-  - [x] learn: [ACPI Table](https://blog.csdn.net/u011280717/article/details/124959776)
-  - [./MyAcpiViewPkg/MyAcpiView.c](./MyAcpiViewPkg/MyAcpiView.c)
+  - [x] learn: [HelloWorldPkg](https://www.bilibili.com/video/BV1HL4y1W7dJ/)、[ACPI Table](https://blog.csdn.net/u011280717/article/details/124959776)
+  - [MyAcpiView.c](./edk2/MyAcpiViewPkg/MyAcpiView.c)
 - [x] 实践：Hack ACPI Table
-  - [./MyAcpiViewPkg/MyAcpiView.c](./MyAcpiViewPkg/MyAcpiView.c)
+  - [MyAcpiView.c](./edk2/MyAcpiViewPkg/MyAcpiView.c)
 - [x] 设计：UEFI 运行时服务
 
 ### 系统调用
@@ -24,7 +24,7 @@ See tutorial at [https://github.com/peterzheng98/os-2024-tutorial](https://githu
 ### 内存管理
 
 - [x] 基础：页表和文件页
-- [ ] 实践：内存文件系统
+- [x] 实践：内存文件系统
 - [ ] 设计：内存压力导向的内存管理
 
 ### 文件系统
