@@ -119,6 +119,7 @@ cd ~/os_homework && make kv_test_c project=ramfs_crash_test
 在一个终端：
 
 ```bash
+conda activate os_fuse
 cd ~/os_homework/fuse && python3 ./gptfs.py ./gptfs_mount
 ```
 
@@ -128,4 +129,15 @@ cd ~/os_homework/fuse && python3 ./gptfs.py ./gptfs_mount
 cd ~/os_homework/fuse && mkdir ./gptfs_mount/test1
 echo "What is Python?" > ./gptfs_mount/test1/input 
 cat ./gptfs_mount/test1/output
+```
+
+## task 7
+
+### task 7.1 
+
+```bash
+cd /home/hqs123/os_homework/tcpdump
+gcc -Wall -g -o custom_tcpdump main.c custom_tcpdump.c -lpcap
+sudo ./custom_tcpdump # 使用默认参数
+sudo ./custom_tcpdump eth0 "tcp port 80" # 指定网络接口和过滤条件
 ```
