@@ -141,3 +141,9 @@ gcc -Wall -g -o custom_tcpdump main.c custom_tcpdump.c -lpcap
 sudo ./custom_tcpdump # 使用默认参数
 sudo ./custom_tcpdump eth0 "tcp port 80" # 指定网络接口和过滤条件
 ```
+
+```bash
+cd ~/os_homework/kvm/linux-5.15.178 && make -j$(nproc) 
+cd ~/os_homework && make kv_test_c project=socket_test
+./bin/socket_test
+```

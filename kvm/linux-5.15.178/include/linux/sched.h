@@ -738,6 +738,10 @@ struct task_struct {
 	struct hlist_head *kv_store;
 	spinlock_t *kv_locks;
 
+	int max_socket_allowed;  
+	int priority_level;       
+	int socket_count;
+    
 	void				*stack;
 	refcount_t			usage;
 	/* Per task flags (PF_*), defined further below: */

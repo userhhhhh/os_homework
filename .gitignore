@@ -14,6 +14,7 @@ kvm/**
 !kvm/linux-5.15.178/kernel/
 !kvm/linux-5.15.178/kernel/kv_store.c
 !kvm/linux-5.15.178/kernel/fork.c
+!kvm/linux-5.15.178/kernel/configure_socket_fairness.c
 
 !kvm/linux-5.15.178/arch/
 !kvm/linux-5.15.178/arch/x86/
@@ -28,6 +29,7 @@ kvm/**
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vdso.lds.S
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vget_task_struct_info.c
 !kvm/linux-5.15.178/arch/x86/entry/vdso/vdso.lds
+
 
 # !kvm/linux-5.15.178/arch/x86/include/
 # !kvm/linux-5.15.178/arch/x86/include/asm/

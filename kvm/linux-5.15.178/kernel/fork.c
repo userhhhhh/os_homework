@@ -2105,6 +2105,11 @@ static __latent_entropy struct task_struct *copy_process(
 #ifdef CONFIG_PROVE_LOCKING
 	DEBUG_LOCKS_WARN_ON(!p->softirqs_enabled);
 #endif
+
+	p->max_socket_allowed = 0;    
+	p->priority_level = 0;
+    p->socket_count = 0;     
+
 	retval = copy_creds(p, clone_flags);
 	if (retval < 0)
 		goto bad_fork_free;
