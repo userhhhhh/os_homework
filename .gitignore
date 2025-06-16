@@ -61,6 +61,8 @@ kvm/**
 !kvm/busybox-1.35.0/_install/
 !kvm/busybox-1.35.0/_install/init
 
+/network/useless
+
 xv6_uefi/
 
 temp/
@@ -80,3 +82,9 @@ a.disk
 disk.qcow2
 inode.c
 QCOW2
+
+/network/nccl/nccl
+/network/nccl/nccl_multi_node
+/network/nccl/tcp_ip_test
+
+temp1/

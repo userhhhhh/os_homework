@@ -147,3 +147,7 @@ cd ~/os_homework/kvm/linux-5.15.178 && make -j$(nproc)
 cd ~/os_homework && make kv_test_c project=socket_test
 ./bin/socket_test
 ```
+
+### task 7.2
+
+见 `network/nccl/readme.md`

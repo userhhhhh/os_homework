@@ -1,0 +1,40 @@
+我是rank 0，总共有 2 个节点
+Rank 0 等待 Rank 1 连接...
+Rank 0 接受了来自 Rank 1 的连接
+Rank 0: 所有连接已建立
+
+Rank 0: 测试数据大小: 1.00 MB
+Rank 0: 测试TCP广播...
+TCP广播性能：时间 = 0.219 ms, 吞吐量 = 4.459 GB/s
+Rank 0: 测试TCP AllReduce...
+Rank 0: AllReduce验证成功
+TCP AllReduce性能：时间 = 2.232 ms, 吞吐量 = 1.750 GB/s
+
+Rank 0: 测试数据大小: 4.00 MB
+Rank 0: 测试TCP广播...
+TCP广播性能：时间 = 4.353 ms, 吞吐量 = 0.897 GB/s
+Rank 0: 测试TCP AllReduce...
+Rank 0: AllReduce验证成功
+TCP AllReduce性能：时间 = 13.964 ms, 吞吐量 = 1.119 GB/s
+
+Rank 0: 测试数据大小: 16.00 MB
+Rank 0: 测试TCP广播...
+TCP广播性能：时间 = 14.850 ms, 吞吐量 = 1.052 GB/s
+Rank 0: 测试TCP AllReduce...
+Rank 0: AllReduce验证成功
+TCP AllReduce性能：时间 = 44.930 ms, 吞吐量 = 1.391 GB/s
+
+Rank 0: 测试数据大小: 64.00 MB
+Rank 0: 测试TCP广播...
+TCP广播性能：时间 = 60.099 ms, 吞吐量 = 1.040 GB/s
+Rank 0: 测试TCP AllReduce...
+Rank 0: AllReduce验证成功
+TCP AllReduce性能：时间 = 174.018 ms, 吞吐量 = 1.437 GB/s
+
+Rank 0: 测试数据大小: 256.00 MB
+Rank 0: 测试TCP广播...
+TCP广播性能：时间 = 242.326 ms, 吞吐量 = 1.032 GB/s
+Rank 0: 测试TCP AllReduce...
+Rank 0: AllReduce验证成功
+TCP AllReduce性能：时间 = 807.227 ms, 吞吐量 = 1.239 GB/s
+Rank 0: 测试完成
