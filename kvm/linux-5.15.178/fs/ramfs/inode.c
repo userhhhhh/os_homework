@@ -466,7 +466,6 @@ int ramfs_file_flush(struct file *file)
         mutex_unlock(&ramfs_sync_mutex);
         return 0;
     }
-    
     /* 复制同步目录路径，避免在后续操作中持有mutex */
     temp_path = kstrdup(ramfs_sync_dir, GFP_KERNEL);
     mutex_unlock(&ramfs_sync_mutex);
@@ -482,10 +481,8 @@ int ramfs_file_flush(struct file *file)
     }
 	pr_info("RAMfs: filepath %s\n", filepath);
 
-    /* 创建临时文件路径 */
+    /* 创建临时文件路径，tmp 是为了保证原子性 */
     snprintf(filepath, PATH_MAX, "%s/.%s.tmp", temp_path, filename);
-    // pid = task_pid_nr(current);
-    // snprintf(filepath, PATH_MAX, "%s/.%s.%d.tmp", temp_path, filename, pid);
     
     /* 以"写+截断"模式打开临时文件 */
     sync_file = filp_open(filepath, O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -515,18 +512,14 @@ int ramfs_file_flush(struct file *file)
     /* 分配缓冲区以复制文件内容 */
     size = i_size_read(inode);
     
-    /* 使用页大小作为缓冲区大小 */
-    len = PAGE_SIZE;
+    len = PAGE_SIZE; /* 使用页大小作为缓冲区大小 */
     buf = kmalloc(len, GFP_KERNEL);
     if (!buf) {
         ret = -ENOMEM;
         goto out_close_read_file;
     }
 
-    /* 将文件指针重置到开头 */
-    pos = 0;
-    
-    /* 逐块读取文件内容并写入临时文件 */
+    pos = 0; /* 逐块读取 src 文件内容并写入 tmp 文件 */
     while (pos < size) {
         loff_t read_pos = pos;
         loff_t write_pos = pos;
@@ -555,19 +548,19 @@ int ramfs_file_flush(struct file *file)
     }
     
     /* 确保数据被写入磁盘 */
+    /* vfs_fsync：强制将文件的所有待写入数据从内存缓冲区刷到磁盘上 */
     ret = vfs_fsync(sync_file, 0);
     if (ret) {
         pr_err("RAMfs: Failed to sync temp file: %d\n", ret);
         goto out_free_buf;
     }
     
-    /* 关闭临时文件 */
     filp_close(sync_file, NULL);
     sync_file = NULL;
     filp_close(read_file, NULL);
     read_file = NULL;
     
-    /* 构造最终文件路径 */
+    /* 最终文件路径 */
     snprintf(filepath, PATH_MAX, "%s/%s", temp_path, filename);
     
     /* 原子重命名临时文件到最终文件 */
@@ -672,15 +665,16 @@ static ssize_t ramfs_proc_bind_read(struct file *file, char __user *buf,
     mutex_lock(&ramfs_sync_mutex);
     if (!ramfs_sync_dir) {
         len = snprintf(temp, PATH_MAX, "No sync directory bound\n");
-    } else {
-        len = snprintf(temp, PATH_MAX, "%s\n", ramfs_sync_dir);
+    } else { 
+        /* 将 ramfs_sync_dir 字符串格式化到 temp 缓冲区 */
+        len = snprintf(temp, PATH_MAX, "%s\n", ramfs_sync_dir); 
     }
     mutex_unlock(&ramfs_sync_mutex);
     
-    if (*ppos >= len)
+    if (*ppos >= len) /* 当前读取偏移（*ppos）已经超过数据长度（len），说明数据已经读完 */
         return 0;
         
-    if (count > len - *ppos)
+    if (count > len - *ppos) /* 用户请求的读取长度（count）超过剩余可读数据长度，则只读取剩余部分 */
         count = len - *ppos;
         
     if (copy_to_user(buf, temp + *ppos, count))
@@ -700,7 +694,7 @@ static ssize_t ramfs_proc_bind_write(struct file *file, const char __user *buf,
     if (count >= PATH_MAX)
         return -EINVAL;
     
-    kbuf = kmalloc(count + 1, GFP_KERNEL);
+    kbuf = kmalloc(count + 1, GFP_KERNEL); /* 从用户那边拿东西 */
     if (!kbuf)
         return -ENOMEM;
         
@@ -709,7 +703,6 @@ static ssize_t ramfs_proc_bind_write(struct file *file, const char __user *buf,
         kfree(kbuf);
         return -ENOMEM;
     }
-    
     sync_path = kmalloc(RAMFS_MAX_PATH, GFP_KERNEL);
     if (!sync_path) {
         kfree(kbuf);
@@ -724,12 +717,10 @@ static ssize_t ramfs_proc_bind_write(struct file *file, const char __user *buf,
     
     kbuf[count] = '\0';
     
-    ret = parse_mount_path(kbuf, ramfs_path, sync_path);
+    ret = parse_mount_path(kbuf, ramfs_path, sync_path); /* 解析出两个 path */
     if (ret)
         goto out;
     
-    /* 验证 ramfs 挂载点 */
-    /* 注意：这里简化了，实际应该检查挂载点是否为 ramfs 类型 */
     
     /* 绑定同步目录 */
     ret = ramfs_bind(sync_path);
@@ -808,7 +799,7 @@ static const struct proc_ops ramfs_sync_fops = {
     .proc_write = ramfs_proc_sync_write,
 };
 
-/* 初始化 proc 接口 */
+/* 常见的内核模块设计模式，通过 proc 接口扩展文件系统的功能，可以基于文件操作 */
 static int __init ramfs_init_proc(void)
 {
     /* 创建 /proc/fs/ramfs 目录 */

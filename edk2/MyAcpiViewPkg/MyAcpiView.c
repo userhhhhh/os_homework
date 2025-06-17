@@ -23,10 +23,10 @@ UefiMain(
     EFI_ACPI_DESCRIPTION_HEADER   *XSDT, *Entry, *FACS, *DSDT;
     EFI_ACPI_6_3_FIXED_ACPI_DESCRIPTION_TABLE  *FADT;
 
-    configTab = gST -> ConfigurationTable;
+    configTab = gST -> ConfigurationTable; // 获取系统配置表
     Print(L"Hello UEFI\n");
 
-    for(i = 0; i < gST -> NumberOfTableEntries; i++){
+    for(i = 0; i < gST -> NumberOfTableEntries; i++){ // 在所有表里查找ACPI表
         if(CompareGuid(&gEfiAcpiTableGuid, &configTab[i].VendorGuid)||
             CompareGuid(&gEfiAcpi20TableGuid, &configTab[i].VendorGuid)){
             Print(L"ACPI Table found\n");
@@ -69,13 +69,13 @@ VOID _PrintTable_Root(
     UINTN j = 0;
     Print(L"------------RSDP Table------------\n");
     Print(L"Address: 0x%x\n", Root);
-    Print(L"Length: %d\n", Root->Length);
+    Print(L"Length: %d\n", Root->Length); // 表长
     Print(L"OEM_ID:");
     for (j = 0; j < 6; j++) {
         Print(L"%c", Root->OemId[j]); 
     }
     Print(L"\n");
-    Print(L"CheckSum: 0x%x\n", Root->Checksum);
+    Print(L"CheckSum: 0x%x\n", Root->Checksum); // 校验和。表的所有字节相加结果的低8位必须为0。
 }
 
 VOID _PrintTable_Header(

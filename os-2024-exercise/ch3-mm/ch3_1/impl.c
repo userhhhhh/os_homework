@@ -17,6 +17,7 @@
  *          映射失败时返回 NULL。
  */
 
+// 要求物理地址和虚拟地址都不一样
 // 理解1：在相同的虚拟地址 addr 上重新映射一块新的 size 大小的物理内存。
 // 理解2：在新的虚拟地址 new_addr 上重新映射一块新的 size 大小的物理内存，内容与 addr 的一样。（代码按照这个写的）
 void* mmap_remap(void *addr, size_t size) {

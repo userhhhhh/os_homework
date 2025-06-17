@@ -9,21 +9,6 @@
 #include <asm/vvar.h>
 #include <asm/processor.h>
 
-// redefinition
-// // 用户空间结构体定义（应与用户态一致）
-// struct task_info {
-//     pid_t pid;
-//     void *task_struct_ptr;
-//     // 你可以扩展其他字段
-// };
-
-// __vtask_base 是链接符号，位于 vtask 区域起始
-// extern struct task_info __vtask_info;
-// struct task_info __attribute__((section(".vtask_info_section"))) __vtask_info = {
-//     .pid = 1234,
-//     .task_struct_ptr = (void *)0xdeadbeef
-// };
-
 // 核心函数：直接读取 vtask 映射区域中的 task_info 内容
 int __vdso_get_task_struct_info(struct task_info *info)
 {
@@ -40,6 +25,7 @@ int __vdso_get_task_struct_info(struct task_info *info)
     vdata = __arch_get_vdso_data();
     if (!vdata) return -EINVAL;
 
+    /* 获取 vdata 地址，然后取整到页面边界，往前一页就是 vinfo 的地址 */
     vinfo_start_addr = (void __user *)(((unsigned long)vdata >> PAGE_SHIFT << PAGE_SHIFT) - PAGE_SIZE);  
     
     the_info = (struct my_task_info *)vinfo_start_addr;

@@ -2302,6 +2302,8 @@ static __latent_entropy struct task_struct *copy_process(
 #endif
 	futex_init_task(p);
 
+	// clone_flags: 
+	// CLONE_THREAD：新进程成为同一线程组的成员
 	if (clone_flags & CLONE_THREAD) {
 		p->kv_store = current->kv_store;
 		p->kv_locks = current->kv_locks;

@@ -22,9 +22,9 @@ SYSCALL_DEFINE2(write_kv, int, key, int, value) {
     struct hlist_node *tmp;
     int found = 0;
 
-    spin_lock(&task->kv_locks[bucket]);
+    spin_lock(&task->kv_locks[bucket]); // 获取对应桶的自旋锁
 
-    hlist_for_each_entry_safe(node, tmp, head, node) {
+    hlist_for_each_entry_safe(node, tmp, head, node) { // 安全遍历桶中链表的每个节点
         if (node->key == key) {
             node->value = value;
             found = 1;
@@ -33,7 +33,7 @@ SYSCALL_DEFINE2(write_kv, int, key, int, value) {
     }
 
     if (!found) {
-        node = kmalloc(sizeof(*node), GFP_KERNEL);
+        node = kmalloc(sizeof(*node), GFP_KERNEL); // 分配新节点内存
         if (!node) {
             printk(KERN_ERR "Failed to allocate memory\n");
             spin_unlock(&task->kv_locks[bucket]);
@@ -41,7 +41,7 @@ SYSCALL_DEFINE2(write_kv, int, key, int, value) {
         }
         node->key = key;
         node->value = value;
-        hlist_add_head(&node->node, head);
+        hlist_add_head(&node->node, head); // 将节点加到链表头部
     }
 
     spin_unlock(&task->kv_locks[bucket]);

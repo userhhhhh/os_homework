@@ -83,9 +83,14 @@ cd ~/os_homework && make kv_test project=test_basic
 ```bash
 cd ~/os_homework/kvm/linux-5.15.178 && make -j$(nproc) 
 make kv_test project=vdso666
+./bin/vdso666
 ```
 
 ## task 5
+
+### task 5.1
+
+见 `/os-2024-exercise/ch3-mm/ch3_1`
 
 ### task 5.2
 

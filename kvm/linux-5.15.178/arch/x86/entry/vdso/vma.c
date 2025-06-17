@@ -179,6 +179,7 @@ static inline struct page *find_timens_vvar_page(struct vm_area_struct *vma)
 }
 #endif
 
+/* map_vdso() 创建了一个映射区域，然后 vtask 触发页错误 */
 static vm_fault_t vtask_fault(const struct vm_special_mapping *sm,
 		      struct vm_area_struct *vma, struct vm_fault *vmf)
 {
